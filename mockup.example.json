@@ -1,0 +1,114 @@
+[
+  {
+    "id": "bitcoin-btc",
+    "name": "Bitcoin", 
+    "symbol": "BTC",
+    "description": "Bitcoin is a decentralized digital currency that can be transferred on the peer-to-peer bitcoin network. Bitcoin transactions are verified by network nodes through cryptography and recorded in a public distributed ledger called a blockchain.",
+    "contractAddress": null,
+    "network": "Bitcoin",
+    "totalSupply": "21000000",
+    "decimals": 8,
+    "price": 45000,
+    "marketCap": 945000000000,
+    "volume24h": 25000000000,
+    "holders": 45000000,
+    "website": "https://bitcoin.org",
+    "whitepaper": "https://bitcoin.org/bitcoin.pdf",
+    "github": "https://github.com/bitcoin/bitcoin",
+    "twitter": "@bitcoin",
+    "tags": ["currency", "store-of-value", "digital-gold", "proof-of-work"],
+    "launchDate": "2009-01-03T00:00:00.000Z",
+    "audit": {
+      "status": "N/A - Original blockchain",
+      "score": 100
+    },
+    "risk": {
+      "level": "Low",
+      "factors": ["Market volatility", "Regulatory uncertainty"]
+    },
+    "analytics": {
+      "priceChange24h": 2.5,
+      "priceChange7d": -1.2,
+      "priceChange30d": 12.8,
+      "volatility": 0.04,
+      "liquidityScore": 0.98
+    }
+  },
+  {
+    "id": "ethereum-eth",
+    "name": "Ethereum",
+    "symbol": "ETH", 
+    "description": "Ethereum is a decentralized platform that runs smart contracts: applications that run exactly as programmed without any possibility of downtime, censorship, fraud or third-party interference.",
+    "contractAddress": null,
+    "network": "Ethereum",
+    "totalSupply": "120000000",
+    "decimals": 18,
+    "price": 3200,
+    "marketCap": 384000000000,
+    "volume24h": 15000000000,
+    "holders": 98000000,
+    "website": "https://ethereum.org",
+    "whitepaper": "https://ethereum.org/en/whitepaper/",
+    "github": "https://github.com/ethereum/go-ethereum",
+    "twitter": "@ethereum",
+    "tags": ["smart-contracts", "defi", "platform", "proof-of-stake"],
+    "launchDate": "2015-07-30T00:00:00.000Z",
+    "audit": {
+      "status": "Audited",
+      "score": 95
+    },
+    "risk": {
+      "level": "Low",
+      "factors": ["Smart contract risks", "Network congestion", "Gas fee volatility"]
+    },
+    "analytics": {
+      "priceChange24h": 1.8,
+      "priceChange7d": -2.5,
+      "priceChange30d": 8.4,
+      "volatility": 0.05,
+      "liquidityScore": 0.95
+    }
+  },
+  {
+    "id": "chainlink-link",
+    "name": "Chainlink",
+    "symbol": "LINK",
+    "description": "Chainlink is a decentralized oracle network that enables smart contracts to securely access off-chain data feeds, web APIs, and traditional bank payments.",
+    "contractAddress": "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+    "network": "Ethereum",
+    "totalSupply": "1000000000",
+    "decimals": 18,
+    "price": 15.50,
+    "marketCap": 15500000000,
+    "volume24h": 500000000,
+    "holders": 750000,
+    "website": "https://chain.link",
+    "whitepaper": "https://link.smartcontract.com/whitepaper",
+    "github": "https://github.com/smartcontractkit/chainlink",
+    "twitter": "@chainlink",
+    "telegram": "https://t.me/chainlinkofficial",
+    "tags": ["oracle", "defi", "data", "infrastructure"],
+    "launchDate": "2017-09-19T00:00:00.000Z",
+    "audit": {
+      "status": "Audited",
+      "report": "https://audits.chain.link/",
+      "score": 88
+    },
+    "risk": {
+      "level": "Medium",
+      "factors": ["Smart contract complexity", "Oracle centralization", "Competition"]
+    },
+    "analytics": {
+      "priceChange24h": -0.5,
+      "priceChange7d": 3.2,
+      "priceChange30d": -5.1,
+      "volatility": 0.08,
+      "liquidityScore": 0.85
+    },
+    "additional": {
+      "category": "Infrastructure",
+      "useCase": "Oracle services",
+      "partnerships": ["Google", "Oracle", "Swift"]
+    }
+  }
+] 

@@ -41,7 +41,7 @@ export class VectorSearchService {
   /**
    * Initialize the Pinecone index if it doesn't exist
    */
-  async initializeIndex(dimension: number = 384): Promise<void> {
+  async initializeIndex(dimension: number = 1536): Promise<void> {
     try {
       // Check if index exists
       const indexList = await this.pinecone.listIndexes();
@@ -205,7 +205,7 @@ export class VectorSearchService {
       const index = this.getIndex();
       
       const searchResult = await index.query({
-        vector: new Array(384).fill(0), // Dummy vector since we're filtering
+        vector: new Array(1536).fill(0), // Dummy vector since we're filtering
         topK: 1000, // Get all chunks for the token
         includeMetadata: true,
         includeValues: false,
@@ -238,7 +238,7 @@ export class VectorSearchService {
       const index = this.getIndex();
       
       const searchResult = await index.query({
-        vector: new Array(384).fill(0), // Dummy vector since we're filtering
+        vector: new Array(1536).fill(0), // Dummy vector since we're filtering
         topK: 1000,
         includeMetadata: true,
         includeValues: false,

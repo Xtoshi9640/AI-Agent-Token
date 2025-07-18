@@ -1,5 +1,6 @@
 import { ChatbotServer } from './server';
 import { TokenMetadata } from './utils/chunking';
+import { loadMockupData, generateSampleTokens } from './utils/dataLoader';
 
 async function main() {
   console.log('🤖 Starting AI Token Bot...');

@@ -8,6 +8,7 @@ interface Config {
   openai: {
     apiKey: string;
     model: string;
+    embeddingModel: string;
   };
   
   // Pinecone Configuration
@@ -41,6 +42,7 @@ const config: Config = {
   openai: {
     apiKey: process.env.OPENAI_API_KEY || '',
     model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    embeddingModel: process.env.EMBEDDING_MODEL || 'text-embedding-3-small',
   },
   
   pinecone: {

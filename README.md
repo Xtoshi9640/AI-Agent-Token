@@ -6,8 +6,7 @@ A sophisticated AI chatbot that uses vector embeddings and OpenAI to provide int
 
 - **Vector Search**: Uses Pinecone for efficient similarity search across large token datasets
 - **Smart Chunking**: Automatically splits large metadata into manageable pieces for embedding
-- **Free Local Embeddings**: Uses Hugging Face transformers (no API costs for embeddings)
-- **OpenAI Integration**: Leverages GPT models for natural language responses (only for chat)
+- **OpenAI Integration**: Leverages GPT models and embeddings for natural language responses
 - **Real-time Chat**: Socket.io support for real-time conversations
 - **REST API**: Complete API for programmatic access
 - **Web Interface**: Simple web UI for testing and interaction
@@ -18,7 +17,7 @@ A sophisticated AI chatbot that uses vector embeddings and OpenAI to provide int
 
 - **Backend**: Node.js + TypeScript + Express
 - **Vector Database**: Pinecone
-- **AI/ML**: Hugging Face Transformers (free local embeddings) + OpenAI (chat only)
+- **AI/ML**: OpenAI (GPT-4 + Embeddings)
 - **Real-time**: Socket.io
 - **HTTP Client**: Axios
 - **Environment**: dotenv
@@ -26,7 +25,7 @@ A sophisticated AI chatbot that uses vector embeddings and OpenAI to provide int
 ## 📋 Prerequisites
 
 - Node.js (v18 or higher)
-- OpenAI API key (only for chat responses, not embeddings)
+- OpenAI API key
 - Pinecone account and API key
 
 ## ⚙️ Installation
@@ -41,9 +40,10 @@ A sophisticated AI chatbot that uses vector embeddings and OpenAI to provide int
 2. **Environment Configuration:**
    Create a `.env` file in the project root:
    ```env
-   # OpenAI Configuration (only for chat, not embeddings)
+   # OpenAI Configuration
    OPENAI_API_KEY=your_openai_api_key_here
    OPENAI_MODEL=gpt-4
+   EMBEDDING_MODEL=text-embedding-3-small
 
    # Pinecone Configuration  
    PINECONE_API_KEY=your_pinecone_api_key_here
@@ -54,7 +54,7 @@ A sophisticated AI chatbot that uses vector embeddings and OpenAI to provide int
    PORT=3000
    NODE_ENV=development
 
-   # Optional: Processing Configuration
+   # Optional: Embedding Configuration
    CHUNK_SIZE=1000
    CHUNK_OVERLAP=200
    MAX_CONTEXT_LENGTH=8000
@@ -219,8 +219,8 @@ interface TokenMetadata {
 - `SIMILARITY_THRESHOLD`: Minimum similarity score (default: 0.7)
 
 ### Models
-- **Chat**: GPT-4 (configurable, requires OpenAI API key)
-- **Embeddings**: all-MiniLM-L6-v2 (384 dimensions, free local model)
+- **Chat**: GPT-4 (configurable)
+- **Embeddings**: text-embedding-3-small (1536 dimensions)
 
 ## 🏗 Architecture
 

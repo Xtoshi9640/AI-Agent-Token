@@ -1,5 +1,20 @@
-import { pipeline, Pipeline } from '@xenova/transformers';
+import axios, { AxiosResponse } from 'axios';
+import { config } from '../config';
 import { ChunkedData } from '../utils/chunking';
+
+interface OpenAIEmbeddingResponse {
+  object: string;
+  data: Array<{
+    object: string;
+    index: number;
+    embedding: number[];
+  }>;
+  model: string;
+  usage: {
+    prompt_tokens: number;
+    total_tokens: number;
+  };
+}
 
 export interface EmbeddingResult {
   id: string;
@@ -10,28 +25,16 @@ export interface EmbeddingResult {
 }
 
 export class EmbeddingService {
-  private model: Pipeline | null = null;
-  private modelName = 'Xenova/all-MiniLM-L6-v2'; // Free 384-dimensional model
-  private isInitialized = false;
+  private apiKey: string;
+  private baseURL = 'https://api.openai.com/v1';
+  private model: string;
 
   constructor() {
-    // Model will be loaded lazily
-  }
-
-  /**
-   * Initialize the embedding model
-   */
-  async initialize(): Promise<void> {
-    if (this.isInitialized) return;
-
-    try {
-      console.log('Loading free embedding model...');
-      this.model = await pipeline('feature-extraction', this.modelName);
-      this.isInitialized = true;
-      console.log('Embedding model loaded successfully!');
-    } catch (error) {
-      console.error('Failed to load embedding model:', error);
-      throw new Error('Failed to initialize local embedding model');
+    this.apiKey = config.openai.apiKey;
+    this.model = config.openai.embeddingModel;
+    
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key is required');
     }
   }
 
@@ -39,23 +42,34 @@ export class EmbeddingService {
    * Generate embedding for a single text
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    await this.ensureInitialized();
-
     try {
-      if (!this.model) {
-        throw new Error('Model not initialized');
+      const response: AxiosResponse<OpenAIEmbeddingResponse> = await axios.post(
+        `${this.baseURL}/embeddings`,
+        {
+          model: this.model,
+          input: text,
+          encoding_format: 'float',
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000, // 30 second timeout
+        }
+      );
+
+      if (!response.data.data || response.data.data.length === 0) {
+        throw new Error('No embedding data received from OpenAI');
       }
 
-      // Generate embedding
-      const result = await this.model(text, { pooling: 'mean', normalize: true });
-      
-      // Convert to regular array
-      const embedding = Array.from(result.data) as number[];
-      
-      return embedding;
+      return response.data.data[0].embedding;
     } catch (error) {
-      console.error('Error generating embedding:', error);
-      throw new Error(`Failed to generate embedding: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error?.message || error.message;
+        throw new Error(`OpenAI API error: ${errorMessage}`);
+      }
+      throw error;
     }
   }
 
@@ -63,35 +77,54 @@ export class EmbeddingService {
    * Generate embeddings for multiple texts in batch
    */
   async generateBatchEmbeddings(texts: string[]): Promise<number[][]> {
-    await this.ensureInitialized();
-
     try {
-      const embeddings: number[][] = [];
-      
-      // Process in smaller batches to manage memory
-      const BATCH_SIZE = 10;
-      
+      // OpenAI has a limit on the number of inputs per request
+      const BATCH_SIZE = 100;
+      const results: number[][] = [];
+
       for (let i = 0; i < texts.length; i += BATCH_SIZE) {
         const batch = texts.slice(i, i + BATCH_SIZE);
         
-        const batchPromises = batch.map(text => this.generateEmbedding(text));
-        const batchEmbeddings = await Promise.all(batchPromises);
-        
-        embeddings.push(...batchEmbeddings);
-        
-        // Log progress
-        console.log(`Generated embeddings: ${Math.min(i + BATCH_SIZE, texts.length)}/${texts.length}`);
-        
-        // Small delay to prevent overwhelming the system
+        const response: AxiosResponse<OpenAIEmbeddingResponse> = await axios.post(
+          `${this.baseURL}/embeddings`,
+          {
+            model: this.model,
+            input: batch,
+            encoding_format: 'float',
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 60000, // 60 second timeout for batch requests
+          }
+        );
+
+        if (!response.data.data || response.data.data.length === 0) {
+          throw new Error('No embedding data received from OpenAI');
+        }
+
+        // Sort by index to maintain order
+        const sortedEmbeddings = response.data.data
+          .sort((a, b) => a.index - b.index)
+          .map(item => item.embedding);
+
+        results.push(...sortedEmbeddings);
+
+        // Add delay between batches to respect rate limits
         if (i + BATCH_SIZE < texts.length) {
-          await this.delay(100);
+          await this.delay(1000); // 1 second delay
         }
       }
 
-      return embeddings;
+      return results;
     } catch (error) {
-      console.error('Error generating batch embeddings:', error);
-      throw new Error(`Failed to generate batch embeddings: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error?.message || error.message;
+        throw new Error(`OpenAI API error: ${errorMessage}`);
+      }
+      throw error;
     }
   }
 
@@ -154,8 +187,8 @@ export class EmbeddingService {
   findSimilarEmbeddings(
     queryEmbedding: number[],
     candidateEmbeddings: EmbeddingResult[],
-    topK: number = 10,
-    threshold: number = 0.7
+    topK: number = config.vectorSearch.topK,
+    threshold: number = config.vectorSearch.similarityThreshold
   ): EmbeddingResult[] {
     const similarities = candidateEmbeddings.map(candidate => ({
       ...candidate,
@@ -184,15 +217,6 @@ export class EmbeddingService {
   }
 
   /**
-   * Ensure model is initialized
-   */
-  private async ensureInitialized(): Promise<void> {
-    if (!this.isInitialized) {
-      await this.initialize();
-    }
-  }
-
-  /**
    * Validate embedding dimensions
    */
   validateEmbedding(embedding: number[]): boolean {
@@ -212,16 +236,13 @@ export class EmbeddingService {
    * Get model information
    */
   getModelInfo(): { model: string; dimensions: number } {
+    // text-embedding-3-small has 1536 dimensions
+    // text-embedding-3-large has 3072 dimensions
+    const dimensions = this.model.includes('large') ? 3072 : 1536;
+    
     return {
-      model: this.modelName,
-      dimensions: 384, // all-MiniLM-L6-v2 produces 384-dimensional embeddings
+      model: this.model,
+      dimensions,
     };
-  }
-
-  /**
-   * Check if service is ready
-   */
-  isReady(): boolean {
-    return this.isInitialized && this.model !== null;
   }
 } 

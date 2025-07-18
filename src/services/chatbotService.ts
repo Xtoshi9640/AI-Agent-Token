@@ -66,9 +66,6 @@ export class ChatbotService {
    * Initialize the chatbot by setting up the vector database
    */
   async initialize(): Promise<void> {
-    // Initialize embedding service first
-    await this.embeddingService.initialize();
-    
     const modelInfo = this.embeddingService.getModelInfo();
     await this.vectorSearchService.initializeIndex(modelInfo.dimensions);
     console.log('Chatbot initialized successfully');
