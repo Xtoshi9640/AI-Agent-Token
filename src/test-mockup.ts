@@ -1,5 +1,7 @@
 import { ChatbotServer } from './server';
 import { loadMockupData, generateSampleTokens } from './utils/dataLoader';
+import {  } from './server';
+
 
 async function testMockupData() {
   console.log('🤖 Starting AI Token Bot Test with Mockup Data...');
@@ -14,6 +16,7 @@ async function testMockupData() {
     // Try to load mockup data
     let tokens;
     try {
+
       console.log('📄 Loading mockup.json...');
       tokens = await loadMockupData();
     } catch (error) {

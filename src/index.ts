@@ -49,6 +49,10 @@ async function main() {
     console.log('5. Web interface:');
     console.log('   Open http://localhost:3000 in your browser');
     console.log('');
+    console.log('6. PumpFun token analysis:');
+    console.log('   GET http://localhost:3000/api/pumpfun/tokens - Fetch latest PumpFun tokens');
+    console.log('   POST http://localhost:3000/api/pumpfun/index - Index PumpFun tokens for analysis');
+    console.log('');
 
   } catch (error) {
     console.error('❌ Failed to start AI Token Bot:', error);

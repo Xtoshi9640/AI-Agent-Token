@@ -6,6 +6,10 @@ import { config, validateConfig } from './config';
 import { ChatbotService } from './services/chatbotService';
 import { TokenMetadata } from './utils/chunking';
 
+const path = require('path');
+
+
+
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -59,13 +63,13 @@ export class ChatbotServer {
     this.app.get('/health', async (req, res) => {
       try {
         const healthStatus = await this.chatbotService.getHealthStatus();
-        res.json({
+        return res.json({
           status: 'ok',
           timestamp: new Date().toISOString(),
           chatbot: healthStatus,
         });
       } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
           status: 'error',
           error: error instanceof Error ? error.message : 'Unknown error',
         });
@@ -86,10 +90,10 @@ export class ChatbotServer {
         console.log(`Received request to index ${tokens.length} tokens`);
         const result = await this.chatbotService.indexTokenMetadata(tokens);
         
-        res.json(result);
+        return res.json(result);
       } catch (error) {
         console.error('Error in /api/index:', error);
-        res.status(500).json({
+        return res.status(500).json({
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
@@ -107,10 +111,10 @@ export class ChatbotServer {
         }
 
         const response = await this.chatbotService.processQuery(query, conversationHistory);
-        res.json(response);
+        return res.json(response);
       } catch (error) {
         console.error('Error in /api/chat:', error);
-        res.status(500).json({
+        return res.status(500).json({
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
@@ -122,7 +126,7 @@ export class ChatbotServer {
         const { identifier } = req.params;
         const results = await this.chatbotService.searchToken(identifier);
         
-        res.json({
+        return res.json({
           identifier,
           results: results.map(result => ({
             id: result.id,
@@ -133,7 +137,7 @@ export class ChatbotServer {
         });
       } catch (error) {
         console.error('Error in /api/search:', error);
-        res.status(500).json({
+        return res.status(500).json({
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
@@ -143,10 +147,10 @@ export class ChatbotServer {
     this.app.get('/api/stats', async (req, res) => {
       try {
         const stats = await this.chatbotService.getIndexStats();
-        res.json(stats);
+        return res.json(stats);
       } catch (error) {
         console.error('Error in /api/stats:', error);
-        res.status(500).json({
+        return res.status(500).json({
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
@@ -156,100 +160,94 @@ export class ChatbotServer {
     this.app.delete('/api/index', async (req, res) => {
       try {
         const success = await this.chatbotService.clearIndex();
-        res.json({ success });
+        return res.json({ success });
       } catch (error) {
         console.error('Error in /api/index DELETE:', error);
-        res.status(500).json({
+        return res.status(500).json({
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
 
-    // Static files for simple web interface
+    // Fetch and analyze PumpFun tokens endpoint
+    this.app.get('/api/pumpfun/tokens', async (req, res) => {
+      try {
+        const { fetchNewPumpFunTokens } = await import('./fetch/pumpfun');
+        const tokens = await fetchNewPumpFunTokens();
+        
+        return res.json({
+          success: true,
+          count: tokens.length,
+          tokens: tokens,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error('Error fetching PumpFun tokens:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
+
+    // Index PumpFun tokens for analysis endpoint
+    this.app.post('/api/pumpfun/index', async (req, res) => {
+      try {
+        const { fetchNewPumpFunTokens } = await import('./fetch/pumpfun');
+        const tokens = await fetchNewPumpFunTokens();
+        
+        // Convert PumpFun tokens to TokenMetadata format
+        const tokenMetadata = tokens.map(token => ({
+          id: `pumpfun-${token.tokenAddress}`,
+          name: token.name || 'Unknown',
+          symbol: token.name?.substring(0, 5).toUpperCase() || 'UNKNOWN',
+          description: `PumpFun token: ${token.name}`,
+          network: 'Solana',
+          totalSupply: '0', // Would need to fetch from blockchain
+          decimals: 9, // Default for Solana tokens
+          price: parseFloat(token.priceUsd),
+          marketCap: token.marketCap || 0,
+          volume24h: 0, // Not available in current API
+          holders: 0, // Not available in current API
+          website: '',
+          tags: ['pumpfun', 'solana', 'new-token'],
+          launchDate: new Date(),
+          audit: {
+            status: 'Not audited',
+            score: 0,
+          },
+          risk: {
+            level: 'High',
+            factors: ['New token', 'Limited liquidity', 'No audit'],
+          },
+          analytics: {
+            priceChange24h: 0,
+            priceChange7d: 0,
+            priceChange30d: 0,
+            volatility: 0,
+            liquidityScore: 0,
+          },
+        }));
+
+        // Index the tokens for analysis
+        const result = await this.chatbotService.indexTokenMetadata(tokenMetadata);
+        
+        return res.json({
+          success: true,
+          indexed: result.indexedTokens,
+          tokens: tokenMetadata,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error('Error indexing PumpFun tokens:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
+
+    // Serve the main page
     this.app.get('/', (req, res) => {
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>AI Token Bot</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; }
-                .container { max-width: 800px; margin: 0 auto; }
-                .chat-container { border: 1px solid #ccc; height: 400px; padding: 20px; overflow-y: auto; margin: 20px 0; }
-                .input-container { display: flex; gap: 10px; }
-                input[type="text"] { flex: 1; padding: 10px; }
-                button { padding: 10px 20px; }
-                .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
-                .user-message { background: #e3f2fd; text-align: right; }
-                .assistant-message { background: #f5f5f5; }
-                .status { padding: 10px; margin: 10px 0; background: #e8f5e8; border-radius: 5px; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>AI Token Bot</h1>
-                <div id="status" class="status">Connecting...</div>
-                <div id="chat" class="chat-container"></div>
-                <div class="input-container">
-                    <input type="text" id="messageInput" placeholder="Ask about tokens..." />
-                    <button onclick="sendMessage()">Send</button>
-                </div>
-            </div>
-
-            <script src="/socket.io/socket.io.js"></script>
-            <script>
-                const socket = io();
-                const chatDiv = document.getElementById('chat');
-                const statusDiv = document.getElementById('status');
-                const messageInput = document.getElementById('messageInput');
-
-                socket.on('connect', () => {
-                    statusDiv.textContent = 'Connected - Ready to chat!';
-                    statusDiv.style.background = '#e8f5e8';
-                });
-
-                socket.on('disconnect', () => {
-                    statusDiv.textContent = 'Disconnected';
-                    statusDiv.style.background = '#ffebee';
-                });
-
-                socket.on('chatResponse', (data) => {
-                    addMessage('assistant', data.response);
-                    if (data.sources && data.sources.length > 0) {
-                        addMessage('system', \`Found \${data.sources.length} relevant sources with \${data.confidence.toFixed(2)} confidence\`);
-                    }
-                });
-
-                socket.on('error', (error) => {
-                    addMessage('system', \`Error: \${error.message}\`);
-                });
-
-                function addMessage(role, content) {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = \`message \${role}-message\`;
-                    messageDiv.textContent = content;
-                    chatDiv.appendChild(messageDiv);
-                    chatDiv.scrollTop = chatDiv.scrollHeight;
-                }
-
-                function sendMessage() {
-                    const message = messageInput.value.trim();
-                    if (message) {
-                        addMessage('user', message);
-                        socket.emit('chatMessage', { query: message });
-                        messageInput.value = '';
-                    }
-                }
-
-                messageInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        sendMessage();
-                    }
-                });
-            </script>
-        </body>
-        </html>
-      `);
+        res.sendFile(path.join(__dirname, 'index.html'));
     });
   }
 
