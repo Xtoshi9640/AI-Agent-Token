@@ -3,6 +3,7 @@ import { config } from '../config';
 import { EmbeddingService } from './embeddingService';
 import { VectorSearchService, SimilarityResult } from './vectorSearchService';
 import { TokenMetadata, chunkTokenMetadataCollection } from '../utils/chunking';
+import { MongoService } from './mongoService';
 
 interface OpenAIChatResponse {
   id: string;
@@ -50,13 +51,15 @@ export class ChatbotService {
   private apiKey: string;
   private baseURL = 'https://api.openai.com/v1';
   private model: string;
+  private mongoService: MongoService;
 
   constructor() {
     this.embeddingService = new EmbeddingService();
     this.vectorSearchService = new VectorSearchService();
     this.apiKey = config.openai.apiKey;
     this.model = config.openai.model;
-
+    this.mongoService = new MongoService();
+    this.mongoService.connect();
     if (!this.apiKey) {
       throw new Error('OpenAI API key is required');
     }
@@ -114,6 +117,33 @@ export class ChatbotService {
    */
   async processQuery(query: string, conversationHistory: ChatMessage[] = []): Promise<ChatbotResponse> {
     const startTime = Date.now();
+
+    // Simple regex to detect queries like 'how many tokens reached $X market cap in the last Y'
+    const capMatch = query.match(/(?:over|above|reached|crossed)?\s*\$?(\d+(?:,\d{3})*)(?:\s*(?:usd|usdt|dollars|market cap|mcap))?/i);
+    const timeMatch = query.match(/last\s+(\d+)\s*(minute|hour|day|second)s?/i);
+    let handled = false;
+    if (capMatch && timeMatch) {
+      const cap = parseInt(capMatch[1].replace(/,/g, ''));
+      const timeValue = parseInt(timeMatch[1]);
+      const timeUnit = timeMatch[2];
+      let ms = 0;
+      if (timeUnit.startsWith('second')) ms = timeValue * 1000;
+      else if (timeUnit.startsWith('minute')) ms = timeValue * 60 * 1000;
+      else if (timeUnit.startsWith('hour')) ms = timeValue * 60 * 60 * 1000;
+      else if (timeUnit.startsWith('day')) ms = timeValue * 24 * 60 * 60 * 1000;
+      const end = new Date();
+      const start = new Date(end.getTime() - ms);
+      const result = await this.mongoService.getTokensCrossingMarketCap(cap, start, end);
+      handled = true;
+      const tokenList = result.tokens.length > 0 ? `: ${result.tokens.join(', ')}` : '';
+      return {
+        response: `There are ${result.count} tokens that reached a market cap of $${cap} in the last ${timeValue} ${timeUnit}${timeValue > 1 ? 's' : ''}${tokenList}.`,
+        sources: [],
+        tokensUsed: 0,
+        confidence: 1,
+        processingTime: Date.now() - startTime,
+      };
+    }
 
     try {
       // Generate embedding for the query

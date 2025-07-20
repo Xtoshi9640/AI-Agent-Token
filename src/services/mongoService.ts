@@ -50,6 +50,10 @@ const priceHistorySchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  name: {
+    type: String,
+    required: true
+  },
   priceUsd: {
     type: String,
     required: true
@@ -267,6 +271,40 @@ export class MongoService {
         .sort({ updatedAt: -1 });
     } catch (error) {
       console.error('❌ Error fetching tokens:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Count unique tokens that crossed a specified market cap within a time window
+   */
+  async getTokensCrossingMarketCap(marketCap: number, startTime: Date, endTime: Date): Promise<{ count: number; tokens: string[] }> {
+    try {
+      const tokens = await PriceHistory.aggregate([
+        { $match: { marketCap: { $gte: marketCap }, timestamp: { $gte: startTime, $lte: endTime } } },
+        { $group: { _id: "$tokenAddress", name: { $first: "$name" } } }
+      ]);
+      
+      // Get token names with fallback to PumpFunToken collection
+      const tokenNames: string[] = [];
+      for (const token of tokens) {
+        let tokenName = token.name;
+        
+        // If name is missing or looks like an address, try to get it from PumpFunToken
+        if (!tokenName || tokenName.length > 20 || tokenName.startsWith('0x')) {
+          const pumpFunToken = await PumpFunToken.findOne({ tokenAddress: token._id });
+          tokenName = pumpFunToken?.name || token._id;
+        }
+        
+        tokenNames.push(tokenName);
+      }
+      
+      return {
+        count: tokens.length,
+        tokens: tokenNames
+      };
+    } catch (error) {
+      console.error('❌ Error counting tokens crossing market cap:', error);
       throw error;
     }
   }
