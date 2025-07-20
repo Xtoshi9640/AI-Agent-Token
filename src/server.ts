@@ -396,4 +396,18 @@ export class ChatbotServer {
   broadcast(event: string, data: any): void {
     this.io.emit(event, data);
   }
+
+  /**
+   * Get the Express app for serverless deployment
+   */
+  getApp(): express.Application {
+    return this.app;
+  }
+
+  /**
+   * Handle requests for serverless deployment
+   */
+  handleRequest(req: any, res: any): void {
+    this.app(req, res);
+  }
 } 

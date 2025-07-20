@@ -2,6 +2,31 @@ import { ChatbotServer } from './server';
 import { TokenMetadata } from './utils/chunking';
 import { loadMockupData, generateSampleTokens } from './utils/dataLoader';
 
+// For Vercel serverless deployment
+let server: ChatbotServer | null = null;
+
+async function initializeServer() {
+  if (!server) {
+    console.log('🤖 Initializing AI Token Bot for Vercel...');
+    server = new ChatbotServer();
+    await server.initialize();
+    console.log('✅ Server initialized for Vercel');
+  }
+  return server;
+}
+
+// Export the Express app for Vercel
+export default async function handler(req: any, res: any) {
+  try {
+    const chatbotServer = await initializeServer();
+    return chatbotServer.handleRequest(req, res);
+  } catch (error) {
+    console.error('❌ Handler error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+// For local development
 async function main() {
   console.log('🤖 Starting AI Token Bot...');
   
