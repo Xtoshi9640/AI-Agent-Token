@@ -22,7 +22,7 @@ interface PumpFunResponse {
     result: PumpFunToken[];
 }
 
-async function fetchNewPumpFunTokens() {
+export async function fetchNewPumpFunTokens() {
   const connection = new Connection(process.env.rpc_url as string, 'confirmed');
   const response = await fetch(
     "https://solana-gateway.moralis.io/token/mainnet/exchange/pumpfun/new?limit=10",
@@ -36,7 +36,6 @@ async function fetchNewPumpFunTokens() {
 
   const data = await response.json() as PumpFunResponse;
 
-  console.log('data ===>', data);
   const tokenList: PumpFunToken[] = [];
   const tokenData = await connection.getParsedAccountInfo(new PublicKey(data.result[0].tokenAddress));
   console.log("tokenData ===>", (tokenData.value?.data as any).parsed);
@@ -52,6 +51,5 @@ async function fetchNewPumpFunTokens() {
         continue;
     }
   }
-  console.log("token list ===>", tokenList);
   return tokenList;
 }

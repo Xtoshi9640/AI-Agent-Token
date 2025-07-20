@@ -5,6 +5,7 @@ import cors from 'cors';
 import { config, validateConfig } from './config';
 import { ChatbotService } from './services/chatbotService';
 import { TokenMetadata } from './utils/chunking';
+import { SchedulerService } from './services/schedulerService';
 
 const path = require('path');
 
@@ -27,6 +28,7 @@ export class ChatbotServer {
   private server: any;
   private io: Server;
   private chatbotService: ChatbotService;
+  private schedulerService: SchedulerService;
   private sessions: Map<string, SocketSession>;
 
   constructor() {
@@ -39,6 +41,7 @@ export class ChatbotServer {
       }
     });
     this.chatbotService = new ChatbotService();
+    this.schedulerService = new SchedulerService(this.chatbotService);
     this.sessions = new Map();
 
     this.setupMiddleware();
@@ -353,6 +356,10 @@ export class ChatbotServer {
     // Initialize chatbot service
     await this.chatbotService.initialize();
     
+    // Initialize and start scheduler service
+    await this.schedulerService.initialize();
+    this.schedulerService.startScheduler();
+    
     console.log('Server initialized successfully');
   }
 
@@ -369,7 +376,10 @@ export class ChatbotServer {
   }
 
   stop(): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+      // Stop the scheduler
+      await this.schedulerService.cleanup();
+      
       this.server.close(() => {
         console.log('Server stopped');
         resolve();

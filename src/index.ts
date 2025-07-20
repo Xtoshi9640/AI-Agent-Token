@@ -53,6 +53,13 @@ async function main() {
     console.log('   GET http://localhost:3000/api/pumpfun/tokens - Fetch latest PumpFun tokens');
     console.log('   POST http://localhost:3000/api/pumpfun/index - Index PumpFun tokens for analysis');
     console.log('');
+    console.log('7. MongoDB Analytics (Auto-updated every 5 minutes):');
+    console.log('   GET http://localhost:3000/api/mongodb/tokens - Get all stored tokens');
+    console.log('   GET http://localhost:3000/api/mongodb/analytics - Get daily analytics');
+    console.log('   GET http://localhost:3000/api/mongodb/top-tokens - Get top tokens by market cap');
+    console.log('   GET http://localhost:3000/api/mongodb/search/:query - Search tokens');
+    console.log('   GET http://localhost:3000/api/mongodb/history/:tokenAddress - Get token price history');
+    console.log('');
 
   } catch (error) {
     console.error('❌ Failed to start AI Token Bot:', error);
