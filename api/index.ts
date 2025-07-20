@@ -3,6 +3,7 @@ import cors from 'cors';
 import { config, validateConfig } from '../src/config';
 import { ChatbotService } from '../src/services/chatbotService';
 import { TokenMetadata } from '../src/utils/chunking';
+import path from 'path';
 
 const app = express();
 
@@ -138,8 +139,13 @@ app.delete('/api/index', async (req, res) => {
   }
 });
 
-// Root endpoint
+// Root endpoint - serve the frontend
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// API info endpoint
+app.get('/api', (req, res) => {
   res.json({
     message: 'AI Token Bot API',
     version: '1.0.0',
@@ -152,6 +158,26 @@ app.get('/', (req, res) => {
       'DELETE /api/index - Clear the index'
     ]
   });
+});
+
+// Catch-all for undefined API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    error: 'API endpoint not found',
+    availableEndpoints: [
+      'GET /health - Health check',
+      'POST /api/index - Index token metadata',
+      'POST /api/chat - Chat with the bot',
+      'GET /api/search/:identifier - Search for a token',
+      'GET /api/stats - Get index statistics',
+      'DELETE /api/index - Clear the index'
+    ]
+  });
+});
+
+// Catch-all for other routes - serve frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 // Export for Vercel
